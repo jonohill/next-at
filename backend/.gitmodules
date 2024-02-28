@@ -1,0 +1,3 @@
+[submodule "src/csv_async"]
+	path = lib/csv_async
+	url = git@github.com:gwierzchowski/csv-async.git

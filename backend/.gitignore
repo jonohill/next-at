@@ -1,0 +1,9 @@
+.*.vars
+node_modules/
+.wrangler/
+build/
+data.sqld/
+target/
+dist/
+*.env
+.DS_Store
