@@ -20,7 +20,7 @@ geo = "0.27.0"
 itertools = "0.12.1"
 log = "0.4.20"
 regex = "1.10.3"
-reqwest = { version = "0.11.23", features = ["json", "stream", "native-tls-vendored"] }
+reqwest = { version = "0.11.24", features = ["json", "stream", "native-tls-vendored"] }
 rusqlite = { version = "0.30.0", features = ["bundled", "csvtab", "serde_json"] }
 sea-orm = { version = "0.12.14", features = ["sqlx-sqlite", "runtime-tokio-native-tls", "debug-print", "with-json"] }
 migration = { path = "./migration" }
