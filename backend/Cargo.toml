@@ -13,7 +13,7 @@ async_zip = { version = "0.0.16", default-features = false, features = ["deflate
 chrono = "0.4.31"
 chrono-tz = "0.8.6"
 derivative = "2.2.0"
-derive_builder = { version = "0.12.0", features = ["clippy"] }
+derive_builder = { version = "0.20.0", features = ["clippy"] }
 dotenvy = "0.15.7"
 env_logger = "0.10.1"
 geo = "0.27.0"
