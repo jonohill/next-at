@@ -34,7 +34,7 @@ FROM rust:1.76.0 AS build-native
 COPY --from=0 /next-at-rs /next-at-rs
 RUN strip /next-at-rs
 
-FROM scratch AS release
+FROM alpine:3.19
 
 COPY --from=0 /next-at-rs /next-at-rs
 
