@@ -18,7 +18,7 @@ dotenvy = "0.15.7"
 env_logger = "0.10.1"
 geo = "0.27.0"
 itertools = "0.12.1"
-log = "0.4.20"
+log = "0.4.21"
 regex = "1.10.3"
 reqwest = { version = "0.11.23", features = ["json", "stream", "native-tls-vendored"] }
 rusqlite = { version = "0.30.0", features = ["bundled", "csvtab", "serde_json"] }
