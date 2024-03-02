@@ -41,7 +41,10 @@ USER app
 
 COPY --from=0 /next-at-rs /next-at-rs
 
+RUN mkdir -p /data
 VOLUME [ "/data" ]
 
+ENV PORT="8080"
+ENV LISTEN_ADDRESS="0.0.0.0:${PORT}"
 ENV DATABASE_PATH="/data/data.db"
 ENTRYPOINT [ "/next-at-rs" ]
