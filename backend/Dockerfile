@@ -36,10 +36,12 @@ RUN strip /next-at-rs
 
 FROM alpine:3.19
 
+RUN addgroup -S app && adduser -S app -G app
+USER app
+
 COPY --from=0 /next-at-rs /next-at-rs
 
 VOLUME [ "/data" ]
 
 ENV DATABASE_PATH="/data/data.db"
-
 ENTRYPOINT [ "/next-at-rs" ]
