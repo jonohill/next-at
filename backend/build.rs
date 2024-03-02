@@ -58,13 +58,18 @@ fn main() {
     for entry in fs::read_dir(ENTITY_DIR).unwrap() {
         let entry = entry.unwrap();
         let path = entry.path();
-        if path.is_file() && path.extension().unwrap() == "rs" {
-            let file_contents = fs::read_to_string(&path).unwrap();
-            let new_contents =
-                // We ignore all unused imports in the generated code
-                "#![allow(unused_imports)]\n".to_string() +
-                &re_pk_type.replace_all(&file_contents, "${1}i64");
-            fs::write(path, new_contents).unwrap();
+        if path.is_file() {
+            if let Some(ext) = path.extension() {
+                if ext != "rs" {
+                    continue;
+                }
+                let file_contents = fs::read_to_string(&path).unwrap();
+                let new_contents =
+                    // We ignore all unused imports in the generated code
+                    "#![allow(unused_imports)]\n".to_string() +
+                    &re_pk_type.replace_all(&file_contents, "${1}i64");
+                fs::write(path, new_contents).unwrap();
+            }
         }
     }
 }
