@@ -39,6 +39,11 @@ struct StopsQuery {
     lon: f64,
 }
 
+#[get("/ok")]
+async fn ok() -> NextAtResult<impl Responder> {
+    Ok(HttpResponse::Ok().finish())
+}
+
 #[get("/stops")]
 async fn get_stops(
     query: web::Query<StopsQuery>,
@@ -137,9 +142,23 @@ async fn main() -> std::io::Result<()> {
     let server = HttpServer::new(move || {
         let logger = Logger::default();
 
+        let mut cors = actix_cors::Cors::default()
+            .allowed_methods(vec!["GET"])
+            .allowed_headers(vec!["accept"]);
+
+        if let Ok(allowed_origin) = env::var("ALLOW_ORIGIN") {
+            if allowed_origin == "*" {
+                cors = cors.allow_any_origin();
+            } else {
+                cors = cors.allowed_origin(&allowed_origin);
+            }
+        }
+
         App::new()
             .wrap(logger)
+            .wrap(cors)
             .app_data(web::Data::new(ctx.clone()))
+            .service(ok)
             .service(get_stops)
             .service(get_stop_routes)
             .service(get_stop_arrivals)
