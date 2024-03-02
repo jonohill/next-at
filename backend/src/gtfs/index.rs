@@ -148,7 +148,7 @@ impl CountLogger {
 }
 
 fn do_build_stop_time_index() -> Result<()> {
-    const MAX_DAYS: i32 = 60;
+    const MAX_DAYS: i32 = 21;
 
     let mut db = db::util::open_rusqlite()?;
 

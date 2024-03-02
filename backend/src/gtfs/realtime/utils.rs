@@ -53,7 +53,7 @@ pub async fn find_trip_run(
         .into_tuple()
         .one(tx)
         .await?
-        .ok_or_else(|| Error::NotFound(format!("Route not found: {}", route_id.clone())))?;
+        .ok_or_else(|| Error::NotFound(format!("Route not found: {} for {:?}", route_id.clone(), trip_descriptor)))?;
 
     let tz: Tz = timezone
         .parse()

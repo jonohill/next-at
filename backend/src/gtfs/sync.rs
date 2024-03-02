@@ -297,7 +297,8 @@ impl<'a> Sync<'a> {
 
         // And build service table
         // This is not in the spec, but it provides a way to have FKs between all the tables
-        let db = open_rusqlite()?;
+        let mut db = open_rusqlite()?;
+        let tx = db.transaction()?;
 
         let mut date_services = Query::select()
             .distinct()
@@ -313,12 +314,18 @@ impl<'a> Sync<'a> {
             .union(UnionType::Distinct, regular_services)
             .to_owned();
 
+        Query::delete()
+            .from_table(service::Entity)
+            .prepare(&tx)?
+            .execute()?;
         Query::insert()
             .into_table(Service)
             .columns([service::Column::ServiceId])
             .select_from(all_services)?
-            .prepare(&db)?
+            .prepare(&tx)?
             .execute()?;
+
+        tx.commit()?;
 
         // success
         let mut this_import = new_import.into_active_model();

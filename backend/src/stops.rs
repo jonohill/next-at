@@ -1,4 +1,4 @@
-use crate::entity::prelude::*;
+use crate::entity::{prelude::*, trip_run};
 use crate::{
     db::{
         error::DbResult,
@@ -9,6 +9,7 @@ use crate::{
     ContextData,
 };
 use chrono::{Duration, Utc};
+use migration::{Expr, Func};
 use sea_orm::sea_query::all;
 use sea_orm::{ColumnTrait, EntityTrait, JoinType, QueryFilter, QueryOrder, QuerySelect};
 use sea_orm::{FromQueryResult, RelationTrait};
@@ -26,12 +27,12 @@ pub struct Stop {
 
 #[derive(Debug, Serialize, Deserialize, Clone, FromQueryResult)]
 pub struct StopRoute {
-    pub id: String,
-    pub short_name: String,
-    pub long_name: String,
-    pub r#type: i32,
-    pub color: String,
-    pub text_color: String,
+    pub route_id: String,
+    pub route_short_name: String,
+    pub route_long_name: String,
+    pub route_type: i32,
+    pub route_color: String,
+    pub route_text_color: String,
 }
 
 #[derive(Debug, Serialize, Clone, FromQueryResult)]
@@ -40,11 +41,9 @@ pub struct StopArrival {
     pub stop_sequence: u32,
     pub route_short_name: String,
     pub stop_headsign: String,
-    // pub freshness: Freshness,
-    // pub status: ArrivalStatus,
-    // pub trip_start_time: i64,
+    pub start_timestamp: i64,
     pub arrival_timestamp: i64,
-    // pub occupancy: Option<u8>,
+    pub updated_arrival_timestamp: Option<i64>,
 }
 
 pub async fn get_closest_stops(
@@ -86,26 +85,32 @@ pub async fn get_stop_arrivals(ctx: &ContextData, stop_id: &str) -> NextAtResult
     use gtfs_stop_times as st;
     use gtfs_trips as t;
     use stop_time_index as sti;
+    use trip_run as tr;
 
     let now = Utc::now().timestamp_millis();
     let tomorrow = Utc::now().add(Duration::days(1)).timestamp_millis();
 
+    let ts_col = || Expr::expr(Func::coalesce([col(sti::Column::UpdatedArrivalTimestamp).into(), col(sti::Column::ArrivalTimestamp).into()]));
+
     let arrivals = StopTimeIndex::find()
         .filter(all![
             sti::Column::StopId.eq(stop_id),
-            sti::Column::ArrivalTimestamp.gte(now),
-            sti::Column::ArrivalTimestamp.lt(tomorrow),
+            ts_col().gte(now),
+            ts_col().lt(tomorrow),
         ])
+        .join(JoinType::InnerJoin, sti::Relation::TripRun.def())
         .join(JoinType::InnerJoin, sti::Relation::GtfsStopTimes.def())
         .join(JoinType::InnerJoin, st::Relation::GtfsTrips.def())
         .join(JoinType::InnerJoin, t::Relation::GtfsRoutes.def())
-        .order_by_asc(sti::Column::ArrivalTimestamp)
+        .order_by_asc(ts_col())
         .select_only()
         .columns([
             sti::Column::TripId,
             sti::Column::StopSequence,
             sti::Column::ArrivalTimestamp,
+            sti::Column::UpdatedArrivalTimestamp,
         ])
+        .column(tr::Column::StartTimestamp)
         .column(r::Column::RouteShortName)
         .column(st::Column::StopHeadsign)
         .limit(50)
@@ -117,23 +122,30 @@ pub async fn get_stop_arrivals(ctx: &ContextData, stop_id: &str) -> NextAtResult
 }
 
 pub async fn get_stop_routes(ctx: &ContextData, stop_id: &str) -> DbResult<Vec<StopRoute>> {
-    use gtfs_routes as r;
-
-    let stop_routes = gtfs_stop_times::Entity::find()
-        .distinct()
+    
+    use stop_time_index::Column as sti;
+    use gtfs_routes::Column as r;
+    
+    let week_hence = Utc::now().add(Duration::weeks(1)).timestamp_millis();
+    
+    let stop_routes = StopTimeIndex::find()
+        .filter(all![
+            sti::ArrivalTimestamp.lte(week_hence),
+            sti::StopId.eq(stop_id),
+        ])
+        .join(JoinType::InnerJoin, stop_time_index::Relation::TripRun.def())
+        .join(JoinType::InnerJoin, trip_run::Relation::GtfsRoutes.def())
+        .group_by(r::RouteId)
+        .order_by_desc(r::RouteId.count())
         .select_only()
-        .column_as(r::Column::RouteId, "id")
-        .column_as(r::Column::RouteShortName, "short_name")
-        .column_as(r::Column::RouteLongName, "long_name")
-        .column_as(r::Column::RouteType, "type")
-        .column_as(r::Column::RouteColor, "color")
-        .column_as(r::Column::RouteTextColor, "text_color")
-        .join(
-            JoinType::InnerJoin,
-            gtfs_stop_times::Relation::GtfsTrips.def(),
-        )
-        .join(JoinType::InnerJoin, gtfs_trips::Relation::GtfsRoutes.def())
-        .filter(gtfs_stop_times::Column::StopId.eq(stop_id))
+        .columns([
+            r::RouteId,
+            r::RouteShortName,
+            r::RouteLongName,
+            r::RouteType,
+            r::RouteColor,
+            r::RouteTextColor,
+        ])
         .into_model::<StopRoute>()
         .all(&ctx.db)
         .await?;
@@ -143,8 +155,6 @@ pub async fn get_stop_routes(ctx: &ContextData, stop_id: &str) -> DbResult<Vec<S
 
 #[cfg(test)]
 mod test {
-
-    use chrono::Local;
 
     use crate::test_utils::ctx;
 
@@ -162,7 +172,6 @@ mod test {
 
     #[tokio::test]
     async fn test_stop_arrivals() {
-        let now = Local::now().naive_local();
         // println!("Now: {}", now);
         let ctx = ctx().await;
         get_stop_arrivals(&ctx, "4018-7ef4a7b7").await.unwrap();
