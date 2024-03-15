@@ -9,11 +9,13 @@ use crate::{
     ContextData,
 };
 use chrono::{Duration, Utc};
+use itertools::Itertools;
 use migration::{Expr, Func};
 use sea_orm::sea_query::all;
 use sea_orm::{ColumnTrait, EntityTrait, JoinType, QueryFilter, QueryOrder, QuerySelect};
 use sea_orm::{FromQueryResult, RelationTrait};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::ops::Add;
 
 /// Stop as returned in the API
@@ -38,12 +40,33 @@ pub struct StopRoute {
 #[derive(Debug, Serialize, Clone, FromQueryResult)]
 pub struct StopArrival {
     pub trip_id: String,
+    #[serde(skip_serializing)]
+    pub route_id: String,
     pub stop_sequence: u32,
-    pub route_short_name: String,
+    #[serde(skip_serializing)]
     pub stop_headsign: String,
+    pub trip_headsign: String,
     pub start_timestamp: i64,
     pub arrival_timestamp: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_arrival_timestamp: Option<i64>,
+}
+
+#[derive(Serialize)]
+pub struct RouteTrip {
+    pub route_id: String,
+    pub route_short_name: String,
+    pub route_long_name: String,
+    pub route_type: i32,
+    pub route_color: String,
+    pub route_text_color: String,
+    pub stop_headsign: String,
+}
+
+#[derive(Serialize)]
+pub struct StopRouteTripArrival {
+    pub route_trip: RouteTrip,
+    pub arrivals: Vec<StopArrival>,
 }
 
 pub async fn get_closest_stops(
@@ -80,7 +103,7 @@ pub async fn get_closest_stops(
     Ok(stops)
 }
 
-pub async fn get_stop_arrivals(ctx: &ContextData, stop_id: &str) -> NextAtResult<Vec<StopArrival>> {
+pub async fn get_stop_arrivals(ctx: &ContextData, stop_id: &str) -> NextAtResult<Vec<StopRouteTripArrival>> {
     use gtfs_routes as r;
     use gtfs_stop_times as st;
     use gtfs_trips as t;
@@ -111,14 +134,45 @@ pub async fn get_stop_arrivals(ctx: &ContextData, stop_id: &str) -> NextAtResult
             sti::Column::UpdatedArrivalTimestamp,
         ])
         .column(tr::Column::StartTimestamp)
-        .column(r::Column::RouteShortName)
         .column(st::Column::StopHeadsign)
+        .column(r::Column::RouteId)
         .limit(50)
         .into_model::<StopArrival>()
         .all(&ctx.db)
         .await?;
 
-    Ok(arrivals)
+    let routes = get_stop_routes(ctx, stop_id).await?;
+    
+    let mut stop_arrivals = HashMap::<(String, String), StopRouteTripArrival>::new();
+
+    for arrival in arrivals {
+
+        if let Some(route) = routes.iter().find(|r| r.route_id == arrival.route_id) {
+            let item = stop_arrivals
+                .entry((arrival.route_id.clone(), arrival.stop_headsign.clone()))
+                .or_insert(StopRouteTripArrival {
+                    route_trip: RouteTrip {
+                        route_id: route.route_id.clone(),
+                        route_short_name: route.route_short_name.clone(),
+                        route_long_name: route.route_long_name.clone(),
+                        route_type: route.route_type,
+                        route_color: route.route_color.clone(),
+                        route_text_color: route.route_text_color.clone(),
+                        stop_headsign: arrival.stop_headsign.clone(),
+                    },
+                    arrivals: vec![],
+                });
+    
+            item.arrivals.push(arrival);
+        }
+
+    }
+
+    let stop_arrivals = stop_arrivals.into_values()
+        .filter(|v| !v.arrivals.is_empty())
+        .sorted_by_key(|a| a.arrivals[0].arrival_timestamp)
+        .collect::<Vec<_>>();
+    Ok(stop_arrivals)
 }
 
 pub async fn get_stop_routes(ctx: &ContextData, stop_id: &str) -> DbResult<Vec<StopRoute>> {

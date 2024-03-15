@@ -79,7 +79,7 @@ async fn get_stop_arrivals(
 
     let arrivals = stops::get_stop_arrivals(&ctx, &stop_id).await?;
     let response = web::Json(json!({
-        "arrivals": arrivals,
+        "stop_arrivals": arrivals,
     }));
     Ok(response)
 }
