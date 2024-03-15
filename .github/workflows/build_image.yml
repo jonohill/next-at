@@ -18,9 +18,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - docker_target: linux/amd64
+          - docker_target: amd64
             rust_target: x86_64-unknown-linux-musl
-          - docker_target: linux/arm64
+          - docker_target: arm64
             rust_target: aarch64-unknown-linux-musl
 
     steps:
@@ -30,7 +30,7 @@ jobs:
       - name: Build
         run: |
           cd backend
-          make build-${{ matrix.rust_target }}
+          make build-${{ matrix.docker_target }}
           cd -
           ls -thral backend/target/linux/*
 
@@ -38,7 +38,7 @@ jobs:
         uses: actions/upload-artifact@v4.3.1
         with:
           name: ${{ matrix.rust_target }}
-          path: backend/target/${{ matrix.docker_target }}
+          path: backend/target/linux/${{ matrix.docker_target }}
 
   build_docker:
 

@@ -28,12 +28,15 @@ build-%: install-deps
 
 TAG ?= next-at
 
-docker: build
-	mkdir -p target/linux/amd64/release
+build-docker-arm64: build-aarch64-unknown-linux-musl
 	mkdir -p target/linux/arm64/release
-	rm target/linux/amd64/release/next-at-rs || true
 	rm target/linux/arm64/release/next-at-rs || true
-	cp target/x86_64-unknown-linux-musl/release/next-at-rs target/linux/amd64/release/next-at-rs
 	cp target/aarch64-unknown-linux-musl/release/next-at-rs target/linux/arm64/release/next-at-rs
 
+build-docker-amd64: build-x86_64-unknown-linux-musl
+	mkdir -p target/linux/amd64/release
+	rm target/linux/amd64/release/next-at-rs || true
+	cp target/x86_64-unknown-linux-musl/release/next-at-rs target/linux/amd64/release/next-at-rs
+
+docker: build-docker-arm64 build-docker-amd64
 	docker build -t ${TAG} .
