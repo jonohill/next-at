@@ -15,6 +15,14 @@ jobs:
   build:
     runs-on: macos-14
 
+    strategy:
+      matrix:
+        include:
+          - docker_target: linux/amd64
+            rust_target: x86_64-unknown-linux-musl
+          - docker_target: linux/arm64
+            rust_target: aarch64-unknown-linux-musl
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,14 +30,14 @@ jobs:
       - name: Build
         run: |
           cd backend
-          make
+          make build-${{ matrix.rust_target }}
           cd -
 
-      - name: Upload binaries
+      - name: Upload binary
         uses: actions/upload-artifact@v4.3.1
         with:
-          name: binaries
-          path: ./target/linux
+          name: ${{ matrix.rust_target }}
+          path: backend/target/${{ matrix.docker_target }}
 
   build_docker:
 
@@ -57,11 +65,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download binaries
+      - name: Download amd64
         uses: actions/download-artifact@v4.1.4
         with:
-          name: binaries
-          path: ./target/linux
+          name: x86_64-unknown-linux-musl
+          path: backend/target/linux/amd64
+
+      - name: Download arm64
+        uses: actions/download-artifact@v4.1.4
+        with:
+          name: aarch64-unknown-linux-musl
+          path: backend/target/linux/arm64
 
       - name: Build and push Docker image
         id: build-and-push
