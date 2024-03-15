@@ -45,7 +45,6 @@ pub struct StopArrival {
     pub stop_sequence: u32,
     #[serde(skip_serializing)]
     pub stop_headsign: String,
-    pub trip_headsign: String,
     pub start_timestamp: i64,
     pub arrival_timestamp: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
