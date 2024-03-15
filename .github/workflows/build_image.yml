@@ -30,7 +30,7 @@ jobs:
       - name: Build
         run: |
           cd backend
-          make build-${{ matrix.docker_target }}
+          make build-docker-${{ matrix.docker_target }}
           cd -
           ls -thral backend/target/linux/*
 
