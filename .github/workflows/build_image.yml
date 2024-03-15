@@ -32,6 +32,7 @@ jobs:
           cd backend
           make build-${{ matrix.rust_target }}
           cd -
+          ls -thral backend/target/linux/*
 
       - name: Upload binary
         uses: actions/upload-artifact@v4.3.1
