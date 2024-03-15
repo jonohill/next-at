@@ -11,12 +11,9 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build:
 
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+  build:
+    runs-on: macos-14
 
     steps:
       - name: Checkout repository
@@ -28,6 +25,27 @@ jobs:
           make
           cd -
 
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4.3.1
+        with:
+          name: binaries
+          path: ./target/linux
+
+  build_docker:
+
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Dockerfile
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@2b51285047da1547ffb1b2203d8be4c0af6b1f20 # v3.2.0
 
@@ -38,6 +56,12 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download binaries
+        uses: actions/download-artifact@v4.1.4
+        with:
+          name: binaries
+          path: ./target/linux
 
       - name: Build and push Docker image
         id: build-and-push
