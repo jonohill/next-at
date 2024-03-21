@@ -25,6 +25,8 @@ pub struct Stop {
     pub id: String,
     pub code: String,
     pub name: String,
+    pub lat: Option<f64>,
+    pub lon: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, FromQueryResult)]
@@ -97,9 +99,30 @@ pub async fn get_closest_stops(
             id: s.stop_id.clone(),
             code: s.stop_code.unwrap_or(s.stop_id),
             name: s.stop_name,
+            lat: s.stop_lat,
+            lon: s.stop_lon,
         })
         .collect();
     Ok(stops)
+}
+
+pub async fn get_stop_by_code(ctx: &ContextData, code: &str) -> DbResult<Option<Stop>> {
+    use gtfs_stops as s;
+    use gtfs_stops::Entity as GtfsStop;
+
+    let stop = GtfsStop::find()
+        .filter(s::Column::StopCode.eq(code))
+        .one(&ctx.db)
+        .await?
+        .map(|s| Stop {
+            id: s.stop_id.clone(),
+            code: s.stop_code.unwrap_or(s.stop_id),
+            name: s.stop_name,
+            lat: s.stop_lat,
+            lon: s.stop_lon,
+        });
+
+    Ok(stop)
 }
 
 pub async fn get_stop_arrivals(ctx: &ContextData, stop_id: &str) -> NextAtResult<Vec<StopRouteTripArrival>> {
@@ -110,7 +133,7 @@ pub async fn get_stop_arrivals(ctx: &ContextData, stop_id: &str) -> NextAtResult
     use trip_run as tr;
 
     let now = Utc::now().timestamp_millis();
-    let tomorrow = Utc::now().add(Duration::days(1)).timestamp_millis();
+    let tomorrow = Utc::now().add(Duration::try_days(1).unwrap()).timestamp_millis();
 
     let ts_col = || Expr::expr(Func::coalesce([col(sti::Column::UpdatedArrivalTimestamp).into(), col(sti::Column::ArrivalTimestamp).into()]));
 
@@ -179,7 +202,7 @@ pub async fn get_stop_routes(ctx: &ContextData, stop_id: &str) -> DbResult<Vec<S
     use stop_time_index::Column as sti;
     use gtfs_routes::Column as r;
     
-    let week_hence = Utc::now().add(Duration::weeks(1)).timestamp_millis();
+    let week_hence = Utc::now().add(Duration::try_weeks(1).unwrap()).timestamp_millis();
     
     let stop_routes = StopTimeIndex::find()
         .filter(all![

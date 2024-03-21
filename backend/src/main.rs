@@ -35,8 +35,9 @@ pub struct ContextData {
 
 #[derive(Deserialize)]
 struct StopsQuery {
-    lat: f64,
-    lon: f64,
+    lat: Option<f64>,
+    lon: Option<f64>,
+    code: Option<String>
 }
 
 #[get("/ok")]
@@ -49,7 +50,31 @@ async fn get_stops(
     query: web::Query<StopsQuery>,
     ctx: web::Data<ContextData>,
 ) -> NextAtResult<impl Responder> {
-    let stops = stops::get_closest_stops(&ctx, query.lat, query.lon, 5).await?;
+    let mut stops = vec![];
+    let mut lat = query.lat;
+    let mut lon = query.lon;
+    
+    if let Some(code) = &query.code {
+        if let Some(stop) = stops::get_stop_by_code(&ctx, code).await? {
+            stops.push(stop.clone());
+            // And nearby stops if no other location set
+            if let (None, None, Some(stop_lat), Some(stop_lon)) = (lat, lon, stop.lat, stop.lon) {
+                lat = Some(stop_lat);
+                lon = Some(stop_lon);
+            }
+        }
+    }
+
+    if let (Some(lat), Some(lon)) = (lat, lon) {
+        let mut nearby_stops = stops::get_closest_stops(&ctx, lat, lon, 5).await?;
+        // without the existing stop if set
+        if let Some(code) = &query.code {
+            nearby_stops.retain(|s| s.code != *code);
+        }
+
+        stops.extend(nearby_stops);
+    }
+
     let response = web::Json(json!({
         "stops": stops,
     }));

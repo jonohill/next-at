@@ -242,7 +242,7 @@ pub async fn process_trip_update(db: &impl ConnectionTrait, entity: FeedEntity) 
                     StopTimeIndex::update_many()
                         .col_expr(
                             stop_time_index::Column::UpdatedArrivalTimestamp,
-                            col(stop_time_index::Column::ArrivalTimestamp).add(delay),
+                            col(stop_time_index::Column::ArrivalTimestamp).add(delay * 1000),
                         )
                         .filter(all![
                             stop_time_index::Column::TripRunId.eq(trip_run.id), // gte not gt!
@@ -264,7 +264,7 @@ pub async fn process_trip_update(db: &impl ConnectionTrait, entity: FeedEntity) 
                     StopTimeIndex::update_many()
                         .col_expr(
                             stop_time_index::Column::UpdatedArrivalTimestamp,
-                            col(stop_time_index::Column::ArrivalTimestamp).add(delay),
+                            col(stop_time_index::Column::ArrivalTimestamp).add(delay * 1000),
                         )
                         .filter(all![
                             stop_time_index::Column::TripRunId.eq(trip_run.id), // gt not gte!
