@@ -41,7 +41,7 @@ ARG TARGETPLATFORM
 RUN addgroup -S app && adduser -S app -G app
 RUN mkdir -p /data && chown -R app:app /data
 
-COPY --from=0 ./target/${TARGETPLATFORM}/release/next-at-rs /next-at-rs
+COPY --from=build-native /next-at-rs /next-at-rs
 RUN chmod +x /next-at-rs
 
 USER app
