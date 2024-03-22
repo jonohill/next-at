@@ -87,6 +87,6 @@ jobs:
           tags: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}"
           cache-from: |
             type=gha
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}-cache-${{ matrix.target }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}-cache-${{ matrix.target }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}-cache-amd64
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}-cache-arm64
           cache-to: type=gha,mode=max
