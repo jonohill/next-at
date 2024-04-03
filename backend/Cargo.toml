@@ -9,7 +9,7 @@ panic = 'abort'
 [dependencies]
 actix-web = "4.5.1"
 async-stream = "0.3.5"
-async_zip = { version = "0.0.16", default-features = false, features = ["deflate"] }
+async_zip = { version = "0.0.17", default-features = false, features = ["deflate"] }
 chrono = "0.4.35"
 chrono-tz = "0.8.6"
 derivative = "2.2.0"
