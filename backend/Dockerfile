@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM rust:1.76.0 AS build
+FROM --platform=$BUILDPLATFORM rust:1.82.0 AS build
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -29,7 +29,7 @@ COPY . .
 RUN cargo zigbuild --target "$(cat /target)" --release && \
     cp "target/$(cat /target)/release/next-at-rs" /next-at-rs
 
-FROM rust:1.76.0 AS build-native
+FROM rust:1.82.0 AS build-native
 
 COPY --from=0 /next-at-rs /next-at-rs
 RUN strip /next-at-rs
