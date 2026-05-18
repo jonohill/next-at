@@ -11,7 +11,7 @@ actix-web = "4.5.1"
 async-stream = "0.3.5"
 async_zip = { version = "0.0.16", default-features = false, features = ["deflate"] }
 chrono = "0.4.35"
-chrono-tz = "0.8.6"
+chrono-tz = "0.10.0"
 derivative = "2.2.0"
 derive_builder = { version = "0.20.0", features = ["clippy"] }
 dotenvy = "0.15.7"
